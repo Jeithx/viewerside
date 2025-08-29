@@ -4,7 +4,6 @@ using UnityEngine.UI;
 
 public class TimelineWindowManager : MonoBehaviour
 {
-    private TimelineGrid timeline;
     private RectTransform playbackStackRoot;
 
     public class Win
@@ -16,9 +15,9 @@ public class TimelineWindowManager : MonoBehaviour
 
     private readonly Dictionary<Content, Win> windows = new();
 
-    public void Initialize(TimelineGrid grid, RectTransform stackRoot)
+    // Initialize artık sadece pencelerin oluşturulacağı alanı alıyor.
+    public void Initialize(RectTransform stackRoot)
     {
-        timeline = grid;
         playbackStackRoot = stackRoot;
     }
 
@@ -30,7 +29,8 @@ public class TimelineWindowManager : MonoBehaviour
         if (tex) w.view.texture = tex;
         w.view.enabled = true;
         w.fitter?.FitNow(w.view.texture);
-        UpdateWindowOrders();
+        // Gösterilen pencereyi en üste taşı
+        w.root.SetAsLastSibling();
     }
 
     public void HideContent(Content c)
@@ -44,7 +44,7 @@ public class TimelineWindowManager : MonoBehaviour
         return windows.ContainsKey(content);
     }
 
-        public RectTransform GetWindowRoot(Content content)
+    public RectTransform GetWindowRoot(Content content)
     {
         if (windows.TryGetValue(content, out var win))
         {
@@ -63,7 +63,7 @@ public class TimelineWindowManager : MonoBehaviour
         }
 
         var rootGO = new GameObject($"Win_{c.GetHashCode()}",
-            typeof(RectTransform), typeof(Image), typeof(WindowResizer));
+            typeof(RectTransform), typeof(Image), typeof(WindowResizer), typeof(DraggablePanel));
         var rootRT = rootGO.GetComponent<RectTransform>();
         rootRT.SetParent(playbackStackRoot, false);
         rootRT.anchorMin = rootRT.anchorMax = rootRT.pivot = new Vector2(0.5f, 0.5f);
@@ -103,18 +103,8 @@ public class TimelineWindowManager : MonoBehaviour
         var win = new Win { root = rootRT, view = ri, fitter = fitter };
         windows[c] = win;
 
-        UpdateWindowOrders();
         rootGO.SetActive(false);
         return win;
-    }
-
-    public void UpdateWindowOrders()
-    {
-        if (windows.Count == 0) return;
-
-        var ordered = new List<KeyValuePair<Content, Win>>(windows);
-        ordered.Sort((a, b) => timeline.RowIndexFor(b.Key).CompareTo(timeline.RowIndexFor(a.Key)));
-        foreach (var pair in ordered) pair.Value.root.SetAsLastSibling();
     }
 
     public void OnRectTransformDimensionsChange()
@@ -127,64 +117,6 @@ public class TimelineWindowManager : MonoBehaviour
         }
     }
 
-    public void SetWindowProperties(Content content, float posX, float posY, float width, float height)
-    {
-        if (content == null) return;
-
-        if (windows.TryGetValue(content, out var win))
-        {
-            if (win.root != null)
-            {
-                float scaleFactorX = 1f;
-                float scaleFactorY = 1f;
-
-                win.root.anchoredPosition = new Vector2(posX * scaleFactorX, posY * scaleFactorY);
-                win.root.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width * scaleFactorX);
-                win.root.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height * scaleFactorY);
-
-                if (win.fitter != null)
-                {
-                    win.fitter.FitNow(win.view?.texture);
-                }
-            }
-        }
-    }
-
-    public void SetWindowAnchors(Content content, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot)
-    {
-        if (content == null) return;
-
-        if (windows.TryGetValue(content, out var win))
-        {
-            if (win.root != null)
-            {
-                win.root.anchorMin = anchorMin;
-                win.root.anchorMax = anchorMax;
-                win.root.pivot = pivot;
-            }
-        }
-    }
-
-    public Vector2 GetWindowPosition(Content content)
-    {
-        if (content != null && windows.TryGetValue(content, out var win))
-        {
-            if (win.root != null)
-                return win.root.anchoredPosition;
-        }
-        return Vector2.zero;
-    }
-
-    public Vector2 GetWindowSize(Content content)
-    {
-        if (content != null && windows.TryGetValue(content, out var win))
-        {
-            if (win.root != null)
-                return win.root.rect.size;
-        }
-        return new Vector2(100, 100);
-    }
-
     public void ClearWindows()
     {
         foreach (var kvp in windows)
@@ -194,7 +126,6 @@ public class TimelineWindowManager : MonoBehaviour
         }
         windows.Clear();
     }
-
 
     public Dictionary<Content, Win> GetWindows() => windows;
 }

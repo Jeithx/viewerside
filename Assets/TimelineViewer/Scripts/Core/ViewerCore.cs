@@ -34,7 +34,7 @@ public class ViewerCore : MonoBehaviour
         xmlSerializer = GetComponent<TimelineXMLSerializer>() ?? gameObject.AddComponent<TimelineXMLSerializer>();
 
         playbackManager.Initialize(gameObject);
-        windowManager.Initialize(null, displayArea);
+        windowManager.Initialize(displayArea);
     }
 
     public void LoadProject(string xmlPath)
