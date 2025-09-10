@@ -536,6 +536,13 @@ public class ViewerCore : BasicSingleton<ViewerCore>
         backgroundPanel.SetActive(false);
     }
 
+    private void ClosePanel()
+    {
+        panelContainerLayoutElement.preferredHeight = 0;
+
+        descriptionPanelRect.anchoredPosition = panelHiddenPosition*2;
+    }
+
 
     public void TriggerPanel()
     {
